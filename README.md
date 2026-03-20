@@ -4,9 +4,12 @@
 PWM receiver to receive and decode PWM pulses from flight controllers / remote controllers
 
 # Theory of Operation
-- This IP Core operates in terms of Unit Interval or abbreviated as UI. This is what allows this core to be firmware friendly. The *UI Clock Ticks Register* defines the number of AXI clock ticks for a UI. In the case for RC Servo Motor Control, a convienant UI is the number of clock ticks for 1uS. In this way when a 1 mS pulse is received, the IP core will report 1000 UI.
+- This IP Core operates in terms of Unit Interval or abbreviated as UI. This is what allows this core to be firmware friendly. The *UI Clock Ticks Register* programs the terminal count used to accumulate one UI. In the current RTL implementation, firmware should load the desired AXI clock ticks per UI minus one. For example, at a 50 MHz AXI clock, a 1 uS UI is programmed as `49`, and a 1 mS pulse is reported as 1000 UI.
+- Capture is disabled until the *UI Clock Ticks Register* is programmed to a non-zero value.
 - As currently implemented, this IP core is Frame Length agnostic. Although this may change after additional real world testing.
+- The `pwm_in` signal is synchronized into the AXI clock domain and majority-deglitched before edge detection and pulse measurement.
 - Reported received pulse width is automatically rounded to the nearest UI.
+- A completed pulse measurement asserts the interrupt status, and reading the Rx Pulse UI Count Register acknowledges and clears that interrupt.
 
 # Register Interface
 ## List of registers
@@ -45,5 +48,4 @@ Offset `0x0C` is reserved and unimplemented in the current RTL. Reads return `0`
 
 - Rx Pulse UI Ticks Count - Length in UI of the last received PWM pulse
 - Reading this register automatically acknowledges and clears the pending capture interrupt
-
 
