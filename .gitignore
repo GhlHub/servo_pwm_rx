@@ -1,0 +1,15 @@
+# Xilinx simulator generated artifacts
+xsim.dir/
+xsim.jou
+xsim.log
+xsim_*.backup.jou
+xsim_*.backup.log
+xvlog.log
+xvlog.pb
+xelab.log
+xelab.pb
+
+# Testbench run outputs
+tb/*.log
+tb/*.wdb
+tb/*_*.backup.log

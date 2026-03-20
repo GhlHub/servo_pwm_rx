@@ -13,11 +13,13 @@ PWM receiver to receive and decode PWM pulses from flight controllers / remote c
 
 Note: All registers are 32-bits wide.
 
-| Offset  | Name | Description |
-| ------------- | ------------- | - |
-| 0x00 | Control Register | Main control register for Servo PWM Rx controller  |
-| 0x04 | UI Clock Ticks Register | Defines number of clock ticks per Unit Interval (UI) |
-| 0x08 | Rx Pulse UI Count Register | Width of last received pulse in units of UI |
+| Offset  | Name | Access | Description |
+| ------------- | ------------- | - | - |
+| 0x00 | Control Register | RW | Main control and status register for Servo PWM Rx controller |
+| 0x04 | UI Clock Ticks Register | RW | Defines number of clock ticks per Unit Interval (UI) |
+| 0x08 | Rx Pulse UI Count Register | RO | Width of last received pulse in units of UI |
+
+Offset `0x0C` is reserved and unimplemented in the current RTL. Reads return `0`.
 
 ### Control Register
 | 31 | 30:2 | 1 | 0 |
@@ -34,13 +36,14 @@ Note: All registers are 32-bits wide.
 | Reserved | UI Clock Ticks Count |
 
 - UI Clock Ticks Count - Defines the number of clock ticks per Unit Interval (UI)
+- A value of `0` disables capture until firmware programs a non-zero UI tick count
 
 ### Rx Pulse UI Count Register
 | 31:12 | 11:0 |
 | - | - |
 | Reserved | Rx Pulse UI Ticks Count |
 
-- Rx Pulse UI Ticks Count - Length in UI of the last received PWM pulse. Note reading this register will automatically acknowlege and clear this interrupt.
-
+- Rx Pulse UI Ticks Count - Length in UI of the last received PWM pulse
+- Reading this register automatically acknowledges and clears the pending capture interrupt
 
 

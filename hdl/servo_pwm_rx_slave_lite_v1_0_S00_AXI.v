@@ -94,6 +94,7 @@
 	reg  	axi_arready;
 	reg [1 : 0] 	axi_rresp;
 	reg  	axi_rvalid;
+	reg         aw_en;
 
 	// Example-specific design signals
 	// local parameter for addressing 32 bit / 64 bit C_S_AXI_DATA_WIDTH
@@ -105,11 +106,10 @@
 	//----------------------------------------------
 	//-- Signals for user logic register space example
 	//------------------------------------------------
-	//-- Number of Slave Registers 4
+	//-- Number of implemented slave registers 3
 	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg0;
 	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg1;
 	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg2;
-	reg [C_S_AXI_DATA_WIDTH-1:0]	slv_reg3;
 	integer	 byte_index;
 
 	// I/O Connections assignments
@@ -121,84 +121,83 @@
 	assign S_AXI_ARREADY	= axi_arready;
 	assign S_AXI_RRESP	= axi_rresp;
 	assign S_AXI_RVALID	= axi_rvalid;
-	 //state machine varibles 
-	 reg [1:0] state_write;
 	 reg [1:0] state_read;
-	 //State machine local parameters
-	 localparam Idle = 2'b00,Raddr = 2'b10,Rdata = 2'b11 ,Waddr = 2'b10,Wdata = 2'b11;
-	// Implement Write state machine
-	
-assign is_reg2_rd = (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 4'h2) &
-                    (S_AXI_RVALID && S_AXI_RREADY) &
-                    (state_read == Rdata);	
-	
-	
-	// Outstanding write transactions are not supported by the slave i.e., master should assert bready to receive response on or before it starts sending the new transaction
-	always @(posedge S_AXI_ACLK)                                 
-	  begin                                 
-	     if (S_AXI_ARESETN == 1'b0)                                 
-	       begin                                 
-	         axi_awready <= 0;                                 
-	         axi_wready <= 0;                                 
-	         axi_bvalid <= 0;                                 
-	         axi_bresp <= 0;                                 
-	         axi_awaddr <= 0;                                 
-	         state_write <= Idle;                                 
-	       end                                 
-	     else                                  
-	       begin                                 
-	         case(state_write)                                 
-	           Idle:                                      
-	             begin                                 
-	               if(S_AXI_ARESETN == 1'b1)                                  
-	                 begin                                 
-	                   axi_awready <= 1'b1;                                 
-	                   axi_wready <= 1'b1;                                 
-	                   state_write <= Waddr;                                 
-	                 end                                 
-	               else state_write <= state_write;                                 
-	             end                                 
-	           Waddr:        //At this state, slave is ready to receive address along with corresponding control signals and first data packet. Response valid is also handled at this state                                 
-	             begin                                 
-	               if (S_AXI_AWVALID && S_AXI_AWREADY)                                 
-	                  begin                                 
-	                    axi_awaddr <= S_AXI_AWADDR;                                 
-	                    if(S_AXI_WVALID)                                  
-	                      begin                                   
-	                        axi_awready <= 1'b1;                                 
-	                        state_write <= Waddr;                                 
-	                        axi_bvalid <= 1'b1;                                 
-	                      end                                 
-	                    else                                  
-	                      begin                                 
-	                        axi_awready <= 1'b0;                                 
-	                        state_write <= Wdata;                                 
-	                        if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                                 
-	                      end                                 
-	                  end                                 
-	               else                                  
-	                  begin                                 
-	                    state_write <= state_write;                                 
-	                    if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                                 
-	                   end                                 
-	             end                                 
-	          Wdata:        //At this state, slave is ready to receive the data packets until the number of transfers is equal to burst length                                 
-	             begin                                 
-	               if (S_AXI_WVALID)                                 
-	                 begin                                 
-	                   state_write <= Waddr;                                 
-	                   axi_bvalid <= 1'b1;                                 
-	                   axi_awready <= 1'b1;                                 
-	                 end                                 
-	                else                                  
-	                 begin                                 
-	                   state_write <= state_write;                                 
-	                   if (S_AXI_BREADY && axi_bvalid) axi_bvalid <= 1'b0;                                 
-	                 end                                              
-	             end                                 
-	          endcase                                 
-	        end                                 
-	      end                                 
+	 localparam Idle = 2'b00;
+	 localparam Raddr = 2'b10;
+	 localparam Rdata = 2'b11;
+
+wire is_reg2_rd;
+wire slv_reg_wren;
+wire unused_axi_sideband;
+
+assign is_reg2_rd = axi_rvalid &&
+                    S_AXI_RREADY &&
+                    (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 2'h2);
+assign unused_axi_sideband = &{1'b0, S_AXI_AWPROT, S_AXI_ARPROT, axi_awaddr[ADDR_LSB-1:0], axi_araddr[ADDR_LSB-1:0]};
+
+	// Accept a write only when both address and data are present in the same cycle.
+	always @(posedge S_AXI_ACLK)
+	begin
+	  if (S_AXI_ARESETN == 1'b0)
+	    begin
+	      axi_awready <= 1'b0;
+	      axi_awaddr  <= {C_S_AXI_ADDR_WIDTH{1'b0}};
+	      aw_en       <= 1'b1;
+	    end
+	  else
+	    begin
+	      if (~axi_awready && S_AXI_AWVALID && S_AXI_WVALID && aw_en)
+	        begin
+	          axi_awready <= 1'b1;
+	          axi_awaddr  <= S_AXI_AWADDR;
+	          aw_en       <= 1'b0;
+	        end
+	      else if (S_AXI_BREADY && axi_bvalid)
+	        begin
+	          axi_awready <= 1'b0;
+	          aw_en       <= 1'b1;
+	        end
+	      else
+	        begin
+	          axi_awready <= 1'b0;
+	        end
+	    end
+	end
+
+	always @(posedge S_AXI_ACLK)
+	begin
+	  if (S_AXI_ARESETN == 1'b0)
+	    begin
+	      axi_wready <= 1'b0;
+	    end
+	  else
+	    begin
+	      axi_wready <= ~axi_wready && S_AXI_WVALID && S_AXI_AWVALID && aw_en;
+	    end
+	end
+
+	always @(posedge S_AXI_ACLK)
+	begin
+	  if (S_AXI_ARESETN == 1'b0)
+	    begin
+	      axi_bvalid <= 1'b0;
+	      axi_bresp  <= 2'b00;
+	    end
+	  else
+	    begin
+	      if (~axi_bvalid && axi_awready && S_AXI_AWVALID && axi_wready && S_AXI_WVALID)
+	        begin
+	          axi_bvalid <= 1'b1;
+	          axi_bresp  <= 2'b00;
+	        end
+	      else if (S_AXI_BREADY && axi_bvalid)
+	        begin
+	          axi_bvalid <= 1'b0;
+	        end
+	    end
+	end
+
+assign slv_reg_wren = axi_awready && S_AXI_AWVALID && axi_wready && S_AXI_WVALID;
 
 	// Implement memory mapped register select and write logic generation
 	// The write data is accepted and written to memory mapped registers when
@@ -216,12 +215,11 @@ assign is_reg2_rd = (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 4'h2) &
 	      slv_reg0 <= 0;
 	      slv_reg1 <= 0;
 	      slv_reg2 <= 0;
-	      slv_reg3 <= 0;
 	    end 
 	  else begin
-	    if (S_AXI_WVALID)
+	    if (slv_reg_wren)
 	      begin
-	        case ( (S_AXI_AWVALID) ? S_AXI_AWADDR[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] : axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] )
+	        case (axi_awaddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB])
 	          2'h0:
 	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
 	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
@@ -243,18 +241,10 @@ assign is_reg2_rd = (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 4'h2) &
 	                // Slave register 2
 	                slv_reg2[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
 	              end  
-	          2'h3:
-	            for ( byte_index = 0; byte_index <= (C_S_AXI_DATA_WIDTH/8)-1; byte_index = byte_index+1 )
-	              if ( S_AXI_WSTRB[byte_index] == 1 ) begin
-	                // Respective byte enables are asserted as per write strobes 
-	                // Slave register 3
-	                slv_reg3[(byte_index*8) +: 8] <= S_AXI_WDATA[(byte_index*8) +: 8];
-	              end  
 	          default : begin
 	                      slv_reg0 <= slv_reg0;
 	                      slv_reg1 <= slv_reg1;
 	                      slv_reg2 <= slv_reg2;
-	                      slv_reg3 <= slv_reg3;
 	                    end
 	        endcase
 	      end
@@ -269,7 +259,7 @@ assign is_reg2_rd = (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 4'h2) &
 	         //asserting initial values to all 0's during reset                                       
 	         axi_arready <= 1'b0;                                       
 	         axi_rvalid <= 1'b0;                                       
-	         axi_rresp <= 1'b0;                                       
+	         axi_rresp <= 2'b0;                                       
 	         state_read <= Idle;                                       
 	        end                                       
 	      else                                       
@@ -305,6 +295,12 @@ assign is_reg2_rd = (axi_araddr[ADDR_LSB+OPT_MEM_ADDR_BITS:ADDR_LSB] == 4'h2) &
 	                  end                                       
 	                else state_read <= state_read;                                       
 	              end                                       
+	            default:
+	              begin
+	                axi_arready <= 1'b0;
+	                axi_rvalid  <= 1'b0;
+	                state_read  <= Idle;
+	              end
 	           endcase                                       
 	          end                                       
 	        end                                         
@@ -324,9 +320,9 @@ always@(*) begin
 end	
 
 always@(posedge S_AXI_ACLK) begin
-    casex({S_AXI_ARESETN, pwm_rx_ui_ticks_dv, is_reg2_rd })
-        3'b0xx:  irq <= 1'b0;
-        3'b11x:  irq <= 1'b1;
+    casez({S_AXI_ARESETN, pwm_rx_ui_ticks_dv, is_reg2_rd })
+        3'b0??:  irq <= 1'b0;
+        3'b11?:  irq <= 1'b1;
         3'b101:  irq <= 1'b0;
         default: irq <= irq;
     endcase

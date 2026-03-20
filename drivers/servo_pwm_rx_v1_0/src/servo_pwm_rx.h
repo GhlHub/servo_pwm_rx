@@ -10,7 +10,6 @@
 #define SERVO_PWM_RX_S00_AXI_SLV_REG0_OFFSET 0
 #define SERVO_PWM_RX_S00_AXI_SLV_REG1_OFFSET 4
 #define SERVO_PWM_RX_S00_AXI_SLV_REG2_OFFSET 8
-#define SERVO_PWM_RX_S00_AXI_SLV_REG3_OFFSET 12
 
 
 /**************************** Type Definitions *****************************/
@@ -55,25 +54,4 @@
     Xil_In32((BaseAddress) + (RegOffset))
 
 /************************** Function Prototypes ****************************/
-/**
- *
- * Run a self-test on the driver/device. Note this may be a destructive test if
- * resets of the device are performed.
- *
- * If the hardware system is not built correctly, this function may never
- * return to the caller.
- *
- * @param   baseaddr_p is the base address of the SERVO_PWM_RX instance to be worked on.
- *
- * @return
- *
- *    - XST_SUCCESS   if all self-test code passed
- *    - XST_FAILURE   if any self-test code failed
- *
- * @note    Caching must be turned off for this function to work.
- * @note    Self test may fail if data memory and device are not on the same bus.
- *
- */
-XStatus SERVO_PWM_RX_Reg_SelfTest(void * baseaddr_p);
-
 #endif // SERVO_PWM_RX_H
