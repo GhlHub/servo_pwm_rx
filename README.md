@@ -11,6 +11,42 @@ PWM receiver to receive and decode PWM pulses from flight controllers / remote c
 - Reported received pulse width is automatically rounded to the nearest UI.
 - A completed pulse measurement asserts the interrupt status, and reading the Rx Pulse UI Count Register acknowledges and clears that interrupt.
 
+# Approximate Utilization
+
+The following utilization figures are from an out-of-context Vivado 2025.2 synthesis of `servo_pwm_rx` targeting `xc7z020clg400-1`. These are approximate post-synthesis, pre-implementation numbers and can change slightly after optimization, placement, and routing.
+
+## Top-Level Utilization
+
+| Resource | Count |
+| - | - |
+| Slice LUTs | 83 |
+| Slice Registers / FFs | 74 |
+| LUTRAM | 0 |
+| SRLs | 0 |
+| BRAM | 0 |
+| DSP | 0 |
+
+## Primitive Breakdown
+
+| Primitive | Count |
+| - | - |
+| FDRE | 73 |
+| FDSE | 1 |
+| CARRY4 | 16 |
+| LUT4 | 42 |
+| LUT2 | 31 |
+| LUT6 | 17 |
+| LUT3 | 13 |
+| LUT5 | 6 |
+| LUT1 | 2 |
+
+## Hierarchy Split
+
+| Instance / Module | LUTs | FFs |
+| - | - | - |
+| `servo_pwm_rx` top-level IP | 83 | 74 |
+| `servo_pwm_rx_capture` submodule | 63 | 47 |
+
 # Register Interface
 ## List of registers
 
@@ -48,4 +84,3 @@ Offset `0x0C` is reserved and unimplemented in the current RTL. Reads return `0`
 
 - Rx Pulse UI Ticks Count - Length in UI of the last received PWM pulse
 - Reading this register automatically acknowledges and clears the pending capture interrupt
-
