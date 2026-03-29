@@ -4,10 +4,12 @@ This repository contains a packaged Vivado AXI4-Lite IP core for RC servo PWM pu
 
 ## Key Files
 
-- `hdl/servo_pwm.v`: top-level AXI-wrapped IP module
+- `hdl/servo_pwm_rx.v`: top-level AXI-wrapped IP module
 - `hdl/servo_pwm_rx_slave_lite_v1_0_S00_AXI.v`: AXI4-Lite slave, register map, IRQ behavior
 - `src/servo_pwm_rx_capture.v`: pulse capture, synchronization, deglitch, UI counting, rounding
-- `component.xml`: packaged IP metadata
+- `component.xml`: legacy root-level packaged IP metadata
+- `package_ip_core.tcl`: rebuilds `ip_repo/servo_pwm_rx/`
+- `ip_repo/servo_pwm_rx/component.xml`: generated packaged IP metadata for Vivado repository discovery
 - `drivers/servo_pwm_rx_v1_0/`: packaged software driver metadata and sources
 - `tb/servo_pwm_rx_tb.sv`: self-checking top-level testbench
 - `tb/run_servo_pwm_rx_tb.sh`: one-command Xilinx simulation runner
@@ -68,6 +70,7 @@ The `.gitignore` is set up to ignore generated simulator artifacts while keeping
 
 - Keep `component.xml` and `drivers/servo_pwm_rx_v1_0/data/servo_pwm_rx.mdd` version numbers aligned when bumping the packaged IP version
 - The current packaged software driver is legacy-style (`.mdd` + `.tcl`)
+- Prefer editing source collateral under `hdl/`, `src/`, `xgui/`, `bd/`, and `drivers/`, then rerun `package_ip_core.tcl` instead of editing `ip_repo/servo_pwm_rx/` by hand
 - Modern Vitis Unified support still needs YAML + CMake packaging; see `TODO.md`
 
 ## Documentation Rule

@@ -84,3 +84,10 @@ Offset `0x0C` is reserved and unimplemented in the current RTL. Reads return `0`
 
 - Rx Pulse UI Ticks Count - Length in UI of the last received PWM pulse
 - Reading this register automatically acknowledges and clears the pending capture interrupt
+
+# Vivado IP Packaging
+
+- Packaged Vivado IP repository: `ip_repo/servo_pwm_rx/`
+- Packaging helper script: `package_ip_core.tcl`
+- Regenerate the packaged repository with: `vivado -mode batch -source package_ip_core.tcl`
+- Main packaged metadata file: `ip_repo/servo_pwm_rx/component.xml`
