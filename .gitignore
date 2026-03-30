@@ -9,6 +9,12 @@ xvlog.pb
 xelab.log
 xelab.pb
 
+# Vivado generated artifacts
+vivado.jou
+vivado.log
+vivado_*.backup.jou
+vivado_*.backup.log
+
 # Testbench run outputs
 tb/*.log
 tb/*.wdb
